@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+audit.log
+*.log
+.vscode/
+*.pyo
+venv/
+.venv/
