@@ -86,7 +86,7 @@ def register_health_tools(mcp):
         from notifier import send_alert
         result = send_alert(
             subject="Test Notification",
-            message="This is a test notification from the Pharo AI Chief of Staff system. If you received this email the notification system is working correctly.",
+            message="This is a test notification from the M365 AI Assistant system. If you received this email the notification system is working correctly.",
             alert_type="test"
         )
         if result:

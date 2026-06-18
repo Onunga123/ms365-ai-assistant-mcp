@@ -13,7 +13,7 @@ from tools.sharepoint import register_sharepoint_tools
 from tools.contacts import register_contacts_tools
 from tools.todo import register_todo_tools
 
-mcp = FastMCP("Pharo AI Chief of Staff")
+mcp = FastMCP("M365 AI Assistant")
 
 register_planner_tools(mcp)
 register_email_tools(mcp)

@@ -26,15 +26,15 @@ def send_alert(subject: str, message: str, alert_type: str = "general"):
         msg = MIMEMultipart()
         msg["From"] = ALERT_EMAIL
         msg["To"] = ALERT_RECIPIENT
-        msg["Subject"] = f"[Pharo AI Chief of Staff] {subject}"
+        msg["Subject"] = f"[M365 AI Assistant] {subject}"
 
         body = f"""
-Pharo AI Chief of Staff — System Alert
+Microsoft 365 AI Assistant-System Alert
 
 {message}
 
 Time: {time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())}
-Server: Pharo MCP Server
+Server: M365 Server
         """
         msg.attach(MIMEText(body, "plain"))
 
