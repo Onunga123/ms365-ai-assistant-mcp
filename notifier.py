@@ -3,6 +3,7 @@ import smtplib
 import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from logger import redact
 
 ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 ALERT_EMAIL_PASSWORD = os.getenv("ALERT_EMAIL_PASSWORD")
@@ -12,14 +13,15 @@ _last_notification_time = {}
 NOTIFICATION_COOLDOWN = 3600
 
 def send_alert(subject: str, message: str, alert_type: str = "general"):
+    subject = redact(subject)
+    message = redact(message)
     current_time = time.time()
     last_time = _last_notification_time.get(alert_type, 0)
     if current_time - last_time < NOTIFICATION_COOLDOWN:
         return False
 
     if not all([ALERT_EMAIL, ALERT_EMAIL_PASSWORD, ALERT_RECIPIENT]):
-        print(f"ALERT [{subject}]: {message}")
-        print("Email notifications not configured — add ALERT_EMAIL, ALERT_EMAIL_PASSWORD, ALERT_RECIPIENT to .env")
+        print("Alert notification was not sent because email notifications are not configured.")
         return False
 
     try:
@@ -43,11 +45,11 @@ Server: M365 Server
             server.sendmail(ALERT_EMAIL, ALERT_RECIPIENT, msg.as_string())
 
         _last_notification_time[alert_type] = current_time
-        print(f"Alert sent: {subject}")
+        print("Alert notification sent.")
         return True
 
-    except Exception as e:
-        print(f"Failed to send alert: {str(e)}")
+    except Exception:
+        print("Failed to send alert due to a notification service error.")
         return False
 
 
@@ -59,11 +61,11 @@ def alert_auth_failure(error: str):
     )
 
 
-def alert_api_error(endpoint: str, status_code: int, error: str):
+def alert_api_error(status_code: int):
     if status_code >= 500:
         send_alert(
             subject=f"API Error {status_code}",
-            message=f"Microsoft Graph API returned error {status_code}.\n\nEndpoint: {endpoint}\nError: {error}\n\nThis may indicate a Microsoft service issue.",
+            message=f"Microsoft Graph API returned HTTP status {status_code}.\n\nThis may indicate a Microsoft service issue.",
             alert_type="api_error"
         )
 

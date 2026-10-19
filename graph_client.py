@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import time
 import requests
-from auth import get_token
+from auth import get_token, REQUEST_TIMEOUT
 from logger import log_action
 
 BASE_URL = "https://graph.microsoft.com/v1.0"
@@ -23,14 +23,21 @@ def _make_request(method: str, endpoint: str, data=None, etag=None):
 
         url = f"{BASE_URL}/{endpoint}"
 
-        if method == "GET":
-            response = requests.get(url, headers=headers)
-        elif method == "POST":
-            response = requests.post(url, headers=headers, json=data)
-        elif method == "PATCH":
-            response = requests.patch(url, headers=headers, json=data)
-        elif method == "DELETE":
-            response = requests.delete(url, headers=headers)
+        try:
+            if method == "GET":
+                response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+            elif method == "POST":
+                response = requests.post(url, headers=headers, json=data, timeout=REQUEST_TIMEOUT)
+            elif method == "PATCH":
+                response = requests.patch(url, headers=headers, json=data, timeout=REQUEST_TIMEOUT)
+            elif method == "DELETE":
+                response = requests.delete(url, headers=headers, timeout=REQUEST_TIMEOUT)
+            else:
+                raise ValueError("Unsupported Graph request method")
+        except requests.exceptions.Timeout:
+            raise Exception("Graph API request timed out. Please try again later.")
+        except requests.exceptions.RequestException:
+            raise Exception("Graph API is unavailable. Please try again later.")
 
         log_action(method, {
             "endpoint": endpoint,
@@ -47,7 +54,7 @@ def _make_request(method: str, endpoint: str, data=None, etag=None):
         if response.status_code >= 500:
             try:
                 from notifier import alert_api_error
-                alert_api_error(endpoint, response.status_code, response.text)
+                alert_api_error(response.status_code)
             except Exception:
                 pass
 
@@ -62,7 +69,7 @@ def _make_request(method: str, endpoint: str, data=None, etag=None):
                 return response.json()
             return {"status": "success"}
 
-        raise Exception(f"Graph API error {response.status_code}: {response.text}")
+        raise Exception(f"Graph API request failed with HTTP status {response.status_code}.")
 
     raise Exception(f"Max retries exceeded after {MAX_RETRIES} attempts")
 
@@ -75,7 +82,12 @@ def graph_get_all(endpoint, max_items=None):
     while url and len(all_items) < max_items:
         token = get_token()
         headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(url, headers=headers)
+        try:
+            response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        except requests.exceptions.Timeout:
+            raise Exception("Graph API request timed out. Please try again later.")
+        except requests.exceptions.RequestException:
+            raise Exception("Graph API is unavailable. Please try again later.")
 
         log_action("GET_PAGED", {
             "endpoint": endpoint,
@@ -90,9 +102,12 @@ def graph_get_all(endpoint, max_items=None):
             continue
 
         if response.status_code not in [200, 201]:
-            raise Exception(f"Graph API error {response.status_code}: {response.text}")
+            raise Exception(f"Graph API request failed with HTTP status {response.status_code}.")
 
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError:
+            raise Exception("Graph API returned an invalid response.")
         items = data.get("value", [])
         all_items.extend(items)
 
