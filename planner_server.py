@@ -2,6 +2,9 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from auth import verify_server_key
+verify_server_key()
+
 from mcp.server.fastmcp import FastMCP
 from tools.planner import register_planner_tools
 from tools.email import register_email_tools

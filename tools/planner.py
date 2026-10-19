@@ -1,6 +1,4 @@
-from graph_client import graph_get, graph_post, graph_patch, graph_get_all
-import requests
-from auth import get_token
+from graph_client import graph_get, graph_post, graph_patch, graph_get_all, graph_get_etag
 
 def register_planner_tools(mcp):
 
@@ -36,15 +34,10 @@ def register_planner_tools(mcp):
     @mcp.tool()
     def update_task(task_id: str, title: str = None, percent_complete: int = None):
         """Update an existing Planner task. percent_complete: 0=not started, 50=in progress, 100=complete"""
-        token = get_token()
-        headers = {"Authorization": f"Bearer {token}"}
-        get_response = requests.get(
-            f"https://graph.microsoft.com/v1.0/planner/tasks/{task_id}",
-            headers=headers
-        )
-        if get_response.status_code != 200:
-            raise Exception(f"Failed to get task: {get_response.text}")
-        etag = get_response.headers.get("ETag")
+        # Fetch the current ETag through the shared client so the request inherits the
+        # finite timeout, bounded retry, and sanitized-error behavior. The ETag is then
+        # passed to graph_patch as the If-Match value to preserve optimistic concurrency.
+        etag = graph_get_etag(f"planner/tasks/{task_id}")
         update_data = {}
         if title is not None:
             update_data["title"] = title

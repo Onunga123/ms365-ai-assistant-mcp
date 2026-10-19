@@ -1,4 +1,4 @@
-from graph_client import graph_get, graph_post
+from graph_client import graph_get, graph_post_raw
 
 def register_onenote_tools(mcp):
 
@@ -30,13 +30,10 @@ def register_onenote_tools(mcp):
     @mcp.tool()
     def create_page(user_id: str, section_id: str, title: str, content: str):
         """Create a new page in a OneNote section"""
-        import requests
-        from auth import get_token
-        token = get_token()
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/xhtml+xml"
-        }
+        # OneNote page creation requires an application/xhtml+xml body (not JSON), so it
+        # is routed through graph_post_raw, which preserves the payload encoding and
+        # Content-Type while inheriting the shared timeout, bounded retry, and
+        # sanitized-error behavior.
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -48,14 +45,11 @@ def register_onenote_tools(mcp):
             </body>
         </html>
         """
-        response = requests.post(
-            f"https://graph.microsoft.com/v1.0/users/{user_id}/onenote/sections/{section_id}/pages",
-            headers=headers,
-            data=html_content.encode("utf-8")
+        return graph_post_raw(
+            f"users/{user_id}/onenote/sections/{section_id}/pages",
+            body=html_content.encode("utf-8"),
+            content_type="application/xhtml+xml",
         )
-        if response.status_code not in [200, 201]:
-            raise Exception(f"Graph API error: {response.text}")
-        return response.json()
 
     @mcp.tool()
     def search_pages(user_id: str, search_query: str):

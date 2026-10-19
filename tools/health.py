@@ -1,7 +1,8 @@
 import os
 import time
 import requests
-from auth import get_token, TOKEN_URL, CLIENT_ID, TENANT_ID
+from auth import get_token, REQUEST_TIMEOUT
+from logger import log_action
 
 def register_health_tools(mcp):
 
@@ -11,8 +12,6 @@ def register_health_tools(mcp):
         results = {
             "server_status": "online",
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "tenant_id": TENANT_ID,
-            "client_id": CLIENT_ID,
             "authentication": "unknown",
             "graph_api": "unknown"
         }
@@ -21,21 +20,32 @@ def register_health_tools(mcp):
             token = get_token()
             results["authentication"] = "success"
         except Exception as e:
-            results["authentication"] = f"failed: {str(e)}"
+            # Log the error type for operator diagnostics without exposing the
+            # message (which may reference internal state) to the caller.
+            log_action("health_check", {"authentication": "failed", "error_type": type(e).__name__})
+            results["authentication"] = "failed"
             return results
 
         try:
             headers = {"Authorization": f"Bearer {token}"}
             response = requests.get(
                 "https://graph.microsoft.com/v1.0/$metadata",
-                headers=headers
+                headers=headers,
+                timeout=REQUEST_TIMEOUT
             )
             if response.status_code == 200:
                 results["graph_api"] = "reachable"
             else:
                 results["graph_api"] = f"error: {response.status_code}"
+        except requests.exceptions.Timeout:
+            log_action("health_check", {"graph_api": "unreachable", "error_type": "Timeout"})
+            results["graph_api"] = "unreachable: request timed out"
+        except requests.exceptions.RequestException as e:
+            log_action("health_check", {"graph_api": "unreachable", "error_type": type(e).__name__})
+            results["graph_api"] = "unreachable: network error"
         except Exception as e:
-            results["graph_api"] = f"unreachable: {str(e)}"
+            log_action("health_check", {"graph_api": "unreachable", "error_type": type(e).__name__})
+            results["graph_api"] = "unreachable"
 
         return results
 

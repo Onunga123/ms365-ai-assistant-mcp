@@ -1,4 +1,33 @@
+import os
+import zoneinfo  # Python 3.9+ standard library
+
 from graph_client import graph_get, graph_post, graph_patch, graph_delete
+
+_DEFAULT_TIMEZONE_FALLBACK = "Africa/Nairobi"
+
+
+def _get_default_timezone() -> str:
+    """Return the configured default IANA timezone for To Do task due dates.
+
+    Reads DEFAULT_TIMEZONE from the environment, falling back to Africa/Nairobi
+    when unset or empty. An explicitly configured value is validated against the
+    IANA timezone database via zoneinfo; an invalid value raises a clear,
+    non-sensitive error rather than silently substituting another timezone.
+    """
+    configured = os.getenv("DEFAULT_TIMEZONE")
+    if not configured or not configured.strip():
+        return _DEFAULT_TIMEZONE_FALLBACK
+    tz_name = configured.strip()
+    try:
+        zoneinfo.ZoneInfo(tz_name)
+    except Exception as exc:
+        raise Exception(
+            f"DEFAULT_TIMEZONE is set to an invalid IANA timezone '{tz_name}'. "
+            f"Use a valid timezone name (for example 'Africa/Nairobi', 'UTC', "
+            f"'Europe/London') or leave it unset to use the default."
+        ) from exc
+    return tz_name
+
 
 def register_todo_tools(mcp):
 
@@ -28,9 +57,10 @@ def register_todo_tools(mcp):
         """Create a new task in a To Do list. due_date format: '2026-06-12'"""
         data = {"title": title}
         if due_date:
+            tz = _get_default_timezone()
             data["dueDateTime"] = {
                 "dateTime": f"{due_date}T00:00:00",
-                "timeZone": "Africa/Nairobi"
+                "timeZone": tz
             }
         return graph_post(f"users/{user_id}/todo/lists/{list_id}/tasks", data)
 

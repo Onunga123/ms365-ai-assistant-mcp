@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "m365-core": {
+      "command": "python3",
+      "args": [
+        "/absolute/path/to/ms365-ai-assistant-mcp/servers/core_server.py"
+      ],
+      "env": {
+        "CLIENT_ID": "REPLACE_WITH_YOUR_AZURE_APP_CLIENT_ID",
+        "TENANT_ID": "REPLACE_WITH_YOUR_AZURE_TENANT_ID",
+        "CLIENT_SECRET": "REPLACE_WITH_YOUR_AZURE_APP_CLIENT_SECRET",
+        "MCP_API_KEY": "REPLACE_WITH_A_LONG_RANDOM_LOCAL_KEY",
+        "SECRET_EXPIRY_DATE": "YYYY-MM-DD",
+        "DEFAULT_TIMEZONE": "Africa/Nairobi",
+        "SMTP_HOST": "smtp.gmail.com",
+        "SMTP_PORT": "465",
+        "ALERT_EMAIL": "REPLACE_WITH_ALERT_SENDER_EMAIL",
+        "ALERT_EMAIL_PASSWORD": "REPLACE_WITH_ALERT_SENDER_APP_PASSWORD",
+        "ALERT_RECIPIENT": "REPLACE_WITH_ALERT_RECIPIENT_EMAIL"
+      }
+    }
+  }
+}
