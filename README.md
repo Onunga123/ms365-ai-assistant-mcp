@@ -43,4 +43,4 @@ Python, Model Context Protocol (MCP) SDK, Microsoft Graph API, OAuth 2.0
 
 ## License
 
-MIT
+Proprietary commercial licence. See [LICENSE](./LICENSE) for the applicable terms.
