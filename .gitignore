@@ -7,3 +7,5 @@ audit.log
 *.pyo
 venv/
 .venv/
+# Agensi.io submitted release package
+/ms365-mcp-setup.zip
